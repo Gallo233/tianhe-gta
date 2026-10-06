@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { fromBlender } from '../config';
+import { Loop } from '../core/Loop';
 import { obbContact } from '../systems/CarCollisions';
 import { SHOP_U } from '../world/ShopLight';
 
@@ -2383,6 +2384,20 @@ const TESTS: Test[] = [
       const me = G.plaza.stats().people.find((p) => p[3] === 'group' && Math.abs(p[1] - ty) < 3 && Math.abs(p[0] - tx) >= 1.2 && Math.abs(p[0] - tx) < 4);
       G.plaza.fillNow(g.env.hour);
       return { pass: !!me && left.length === 0, detail: `${me ? `jumped to x ${me[0]} (line at x ${tx.toFixed(2)})` : 'nobody jumped'}; ${left.length} still within 1.2 m of the line` };
+    },
+  },
+  {
+    id: 'LOOP-01', title: '主循环：帧时间戳比 start() 时还早时 dt 记为 0、过大时限 0.05 s（负 dt 曾让花城汇 LED 屏取到 SCREEN[-1]，游戏停在第一帧）',
+    run: () => {
+      const dts: number[] = [];
+      const loop = new Loop((d) => { dts.push(d); }, () => {});
+      loop.start();
+      const L = loop as unknown as { lastTime: number; tick(t: number): void };
+      const t0 = L.lastTime;
+      L.tick(t0 - 11); L.tick(t0 + 5); L.tick(t0 + 500);
+      loop.stop();
+      const ok = dts.length === 3 && dts[0] === 0 && Math.abs(dts[1] - 0.016) < 1e-6 && dts[2] === 0.05;
+      return { pass: ok, detail: `dt ${dts.map((d) => d.toFixed(3)).join(', ')}` };
     },
   },
 ];

@@ -2,6 +2,12 @@
 
 2026-10-06 更新（第十二个会话：花城广场打磨收尾 + 花城汇二期（B1 中区长廊、打通 APM 花城大道站）+ 北段三期（北区下沉广场、音乐喷泉、榕树林））。新会话先读这份，再读 memory 里的 `guangzhou-tianhe-project` 和 `lotus-pond-quality-bar`。
 
+## 2026-10-06 晚（第十三个会话：发布 + 第一帧卡死）
+
+- **公开仓库** https://github.com/Gallo233/tianhe-gta （MIT；OSM 派生数据 ODbL、Draco Apache-2.0，见 `NOTICE`）。大仓库提交后 `git subtree split --prefix=guangzhou -b tianhe-gta` 再推 `tianhe-gta:main`；`git push` / `gh release` 会被 Jev 钩子拦，放用户终端跑。试玩 zip 放 Releases（`release/` 不进库，上传前改成 ASCII 文件名）。桌面有启动器 `~/Desktop/天河 demo.command`（跑 5288 的开发服务器）。
+- **修了一个偶发的「画面全空」**：rAF 的帧时间戳是这一帧的起点，可能比 `Loop.start()` 里取的 `performance.now()` 还早（实测 20 次有 3 次，最多早 11 ms），第一帧 dt 为负；`MallSigns` 用 `floor(t/8) % 4` 取到 `SCREEN[-1]` 抛错，而旧 `Loop.tick` 抛错就不再排下一帧——HUD 在、画布空、不派单、小地图空。现在 dt 钳到 [0, 0.05]，`tick` 先排下一帧再执行、出错只报告（回归 **LOOP-01**）。
+- **报错回传** `core/ErrorReport.ts`：未捕获错误、Promise 拒绝、WebGL 上下文丢失 → 屏幕红框；开发服务器上还 POST `/__err` → `guangzhou/logs/client_errors.log`（带 UA、GPU、视口）并在终端打一行。用户说「画面不对」时先看这个日志。
+
 ## ▶ 下一会话从这里开始（2026-10-06，第十二个会话：城市精修——花城广场 / 花城汇 / 北段）
 
 用户：「继续上个会话任务，完成城市精修」（上个会话末尾列了四处不够精致 + 第二期 + 第三期，本会话全部做了）。

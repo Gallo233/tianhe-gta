@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { noteContext } from './ErrorReport';
 
 export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   const renderer = new THREE.WebGLRenderer({
@@ -10,6 +11,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
     // kilometre views with a 0.5 m near plane: reversed-Z keeps roads, lawns and markings from z-fighting
     reversedDepthBuffer: true,
   });
+  noteContext(renderer.getContext() as WebGL2RenderingContext);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.82;
