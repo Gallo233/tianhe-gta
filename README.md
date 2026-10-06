@@ -73,7 +73,15 @@ Blender --background --factory-startup --python scripts/gz_apm_build.py # APM �
 
 进度、已知问题和下一步都写在 [HANDOFF.md](HANDOFF.md)；设计文档在 `docs/`。
 
-## 署名
+## 许可证与署名
+
+代码、模型、贴图、配音等本仓库原创内容按 [MIT 许可证](LICENSE) 授权，例外如下（详见 LICENSE 末尾）：
+
+- 从 OpenStreetMap 派生的数据（`data/osm/*.json`、`data/tianhe_core.json`、`demo/public/assets/tianhe/*.json`）按
+  [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) 授权；用这些数据做出的图像和模型需署名「© OpenStreetMap 贡献者」。
+- `demo/public/draco/` 是 Google 的 Draco 解码器，Apache-2.0。
+
+署名：
 
 - 地图数据 © [OpenStreetMap](https://www.openstreetmap.org/copyright) 贡献者，按 ODbL 授权。
 - 地名是真实的，店名、品牌、广告和剧情人物都是虚构的。
