@@ -19,17 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----------------------------------------------------------------------------
-
-Exceptions (these parts are not covered by the MIT License above):
-
-* Map data derived from OpenStreetMap -- data/osm/*.json, data/tianhe_core.json
-  and the JSON files in demo/public/assets/tianhe/ -- (c) OpenStreetMap
-  contributors, available under the Open Database License 1.0:
-  https://opendatacommons.org/licenses/odbl/1-0/
-  Rendered images and 3D models built from that data are Produced Works and
-  must credit "(c) OpenStreetMap contributors".
-
-* demo/public/draco/ -- Draco decoder, Copyright Google LLC, Apache License 2.0
-  (see demo/public/draco/LICENSE).

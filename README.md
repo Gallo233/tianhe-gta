@@ -75,7 +75,7 @@ Blender --background --factory-startup --python scripts/gz_apm_build.py # APM �
 
 ## 许可证与署名
 
-代码、模型、贴图、配音等本仓库原创内容按 [MIT 许可证](LICENSE) 授权，例外如下（详见 LICENSE 末尾）：
+代码、模型、贴图、配音等本仓库原创内容按 [MIT 许可证](LICENSE) 授权，例外如下（详见 [NOTICE](NOTICE)）：
 
 - 从 OpenStreetMap 派生的数据（`data/osm/*.json`、`data/tianhe_core.json`、`demo/public/assets/tianhe/*.json`）按
   [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) 授权；用这些数据做出的图像和模型需署名「© OpenStreetMap 贡献者」。

@@ -1,0 +1,14 @@
+Tianhe demo -- third-party notices
+
+The MIT License in LICENSE covers the original code and content of this repository.
+The following parts are NOT covered by it:
+
+* Map data derived from OpenStreetMap -- data/osm/*.json, data/tianhe_core.json
+  and the JSON files in demo/public/assets/tianhe/ -- (c) OpenStreetMap
+  contributors, available under the Open Database License 1.0:
+  https://opendatacommons.org/licenses/odbl/1-0/
+  Rendered images and 3D models built from that data are Produced Works and
+  must credit "(c) OpenStreetMap contributors".
+
+* demo/public/draco/ -- Draco decoder, Copyright Google LLC, Apache License 2.0
+  (see demo/public/draco/LICENSE).
