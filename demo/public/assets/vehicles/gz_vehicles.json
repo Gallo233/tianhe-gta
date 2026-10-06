@@ -1,0 +1,74 @@
+{
+ "sedan": {
+  "file": "gz_sedan.glb",
+  "lod2": "gz_sedan_lod2.glb",
+  "tris": 21512,
+  "lod2_tris": 3011,
+  "length": 4.8,
+  "width": 1.86,
+  "height": 1.45
+ },
+ "taxi": {
+  "file": "gz_taxi.glb",
+  "lod2": "gz_taxi_lod2.glb",
+  "tris": 22102,
+  "lod2_tris": 3094,
+  "length": 4.7,
+  "width": 1.8,
+  "height": 1.5
+ },
+ "police": {
+  "file": "gz_police.glb",
+  "lod2": "gz_police_lod2.glb",
+  "tris": 23316,
+  "lod2_tris": 3264,
+  "length": 4.9,
+  "width": 1.95,
+  "height": 1.72
+ },
+ "suv": {
+  "file": "gz_suv.glb",
+  "lod2": "gz_suv_lod2.glb",
+  "tris": 21960,
+  "lod2_tris": 3074,
+  "length": 4.9,
+  "width": 1.95,
+  "height": 1.7
+ },
+ "sports": {
+  "file": "gz_sports.glb",
+  "lod2": "gz_sports_lod2.glb",
+  "tris": 21638,
+  "lod2_tris": 3461,
+  "length": 4.6,
+  "width": 2.0,
+  "height": 1.2
+ },
+ "mpv": {
+  "file": "gz_mpv.glb",
+  "lod2": "gz_mpv_lod2.glb",
+  "tris": 22116,
+  "lod2_tris": 3096,
+  "length": 4.95,
+  "width": 1.85,
+  "height": 1.82
+ },
+ "bus": {
+  "file": "gz_bus.glb",
+  "lod2": "gz_bus_lod2.glb",
+  "tris": 36244,
+  "lod2_tris": 7248,
+  "length": 12.0,
+  "width": 2.55,
+  "height": 3.2
+ },
+ "scooter": {
+  "file": "gz_scooter.glb",
+  "lod2": "gz_scooter_lod2.glb",
+  "tris": 17676,
+  "lod2_tris": 6186,
+  "length": 1.8,
+  "width": 0.7,
+  "height": 1.4
+ }
+}

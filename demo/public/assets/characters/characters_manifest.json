@@ -1,0 +1,205 @@
+{
+  "ajie": {
+    "display": "阿杰 · 陈俊杰",
+    "height_m": 1.72,
+    "scale_from_tripo": 1.72084,
+    "source_fbx": "characters/incoming/_tripo_raw/a33f8631/tripo_convert_a33f8631-95b3-4cb4-9ccc-d2cbeaff912a.fbx",
+    "texture_source_px": [
+      4096,
+      4096
+    ],
+    "texture_px": {
+      "base": 2048,
+      "normal": 2048,
+      "rough_metal": 1024
+    },
+    "bones": 41,
+    "finger_bones": false,
+    "tris_lod0": 40865,
+    "tris_lod1": 11999,
+    "forward_axis_blender": "+X",
+    "clips": {
+      "idle": {
+        "frames": [
+          1,
+          423
+        ],
+        "duration_s": 17.5833
+      },
+      "idle_fold": {
+        "frames": [
+          1,
+          411
+        ],
+        "duration_s": 17.0833
+      },
+      "run": {
+        "frames": [
+          1,
+          32
+        ],
+        "root_speed_mps": 4.3667,
+        "loop_fix": "appended frame 32 = frame 1 (31-frame cycle)",
+        "duration_s": 1.2917
+      },
+      "walk": {
+        "frames": [
+          1,
+          57
+        ],
+        "root_speed_mps": 1.205,
+        "duration_s": 2.3333
+      },
+      "jump": {
+        "frames": [
+          1,
+          2
+        ],
+        "duration_s": 0.0417,
+        "source": "run frame 13 held (flight phase, lowest foot 0.147 m)"
+      }
+    },
+    "files": {
+      "lod0": "characters/ajie/CH_AJie.glb",
+      "lod1": "characters/ajie/CH_AJie_lod1.glb",
+      "blend": "characters/ajie/CH_AJie.blend"
+    },
+    "glb_bytes": {
+      "lod0": 5254332,
+      "lod1": 2127972
+    }
+  },
+  "qiqi": {
+    "display": "琪琪 · 黎琪琪",
+    "height_m": 1.63,
+    "scale_from_tripo": 1.6308,
+    "source_fbx": "characters/incoming/_tripo_raw/0f2d289f/tripo_convert_0f2d289f-a608-4565-b66c-5cb2837a09d2.fbx",
+    "texture_source_px": [
+      4096,
+      4096
+    ],
+    "texture_px": {
+      "base": 2048,
+      "normal": 2048,
+      "rough_metal": 1024
+    },
+    "bones": 41,
+    "finger_bones": false,
+    "tris_lod0": 42676,
+    "tris_lod1": 11999,
+    "forward_axis_blender": "+X",
+    "clips": {
+      "idle": {
+        "frames": [
+          1,
+          423
+        ],
+        "duration_s": 17.5833
+      },
+      "run": {
+        "frames": [
+          1,
+          32
+        ],
+        "root_speed_mps": 4.3902,
+        "loop_fix": "appended frame 32 = frame 1 (31-frame cycle)",
+        "duration_s": 1.2917
+      },
+      "walk": {
+        "frames": [
+          1,
+          57
+        ],
+        "root_speed_mps": 1.2115,
+        "duration_s": 2.3333
+      },
+      "jump": {
+        "frames": [
+          1,
+          2
+        ],
+        "duration_s": 0.0417,
+        "source": "run frame 13 held (flight phase, lowest foot 0.163 m)"
+      }
+    },
+    "files": {
+      "lod0": "characters/qiqi/CH_Qiqi.glb",
+      "lod1": "characters/qiqi/CH_Qiqi_lod1.glb",
+      "blend": "characters/qiqi/CH_Qiqi.blend"
+    },
+    "glb_bytes": {
+      "lod0": 4624876,
+      "lod1": 2143400
+    }
+  },
+  "qiang": {
+    "display": "强叔 · 何志强",
+    "height_m": 1.7,
+    "scale_from_tripo": 1.70083,
+    "source_fbx": "characters/incoming/_tripo_raw/15343242/tripo_convert_15343242-223b-4bbc-8a12-2c0da55de0b2.fbx",
+    "texture_source_px": [
+      4096,
+      4096
+    ],
+    "texture_px": {
+      "base": 2048,
+      "normal": 2048,
+      "rough_metal": 1024
+    },
+    "bones": 41,
+    "finger_bones": false,
+    "tris_lod0": 40347,
+    "tris_lod1": 12000,
+    "forward_axis_blender": "+X",
+    "clips": {
+      "idle": {
+        "frames": [
+          1,
+          423
+        ],
+        "duration_s": 17.5833
+      },
+      "idle_fold": {
+        "frames": [
+          1,
+          411
+        ],
+        "duration_s": 17.0833
+      },
+      "run": {
+        "frames": [
+          1,
+          32
+        ],
+        "root_speed_mps": 4.2469,
+        "loop_fix": "appended frame 32 = frame 1 (31-frame cycle)",
+        "duration_s": 1.2917
+      },
+      "walk": {
+        "frames": [
+          1,
+          57
+        ],
+        "root_speed_mps": 1.172,
+        "duration_s": 2.3333
+      },
+      "jump": {
+        "frames": [
+          1,
+          2
+        ],
+        "duration_s": 0.0417,
+        "source": "run frame 13 held (flight phase, lowest foot 0.139 m)"
+      }
+    },
+    "files": {
+      "lod0": "characters/qiang/CH_Qiang.glb",
+      "lod1": "characters/qiang/CH_Qiang_lod1.glb",
+      "blend": "characters/qiang/CH_Qiang.blend"
+    },
+    "glb_bytes": {
+      "lod0": 5183332,
+      "lod1": 2113772
+    }
+  }
+}

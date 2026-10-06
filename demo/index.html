@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f1a1f" />
+    <link rel="icon" href="data:," />
+    <title>广州 · 天河</title>
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game-canvas" aria-label="天河 CBD 游戏画面"></canvas>
+
+      <section id="hud" hidden>
+        <div id="who">
+          <div id="who-badge"></div>
+          <div>
+            <strong id="who-name">—</strong>
+            <span id="who-role">—</span>
+          </div>
+        </div>
+        <div id="cash"><span>现金</span><strong id="cash-value">¥0</strong><em id="cash-count">0 单</em></div>
+        <div id="wanted" hidden>★☆☆</div>
+        <div id="busted" hidden>被捕</div>
+
+        <div id="objective">
+          <div id="compass"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 19 20 12 16 5 20Z" /></svg></div>
+          <div>
+            <span id="objective-label">取餐</span>
+            <strong id="objective-place">—</strong>
+          </div>
+          <b id="objective-dist">0 m</b>
+          <b id="objective-timer" hidden>0:00</b>
+          <b id="objective-food" hidden title="餐品完好度">餐 100%</b>
+        </div>
+
+        <div id="stamina"><span>体力</span><div><i id="stamina-fill"></i></div></div>
+        <div id="speedo" hidden><strong id="speed-value">0</strong><span>km/h</span></div>
+        <div id="prompt" hidden><kbd>F</kbd> 上车</div>
+
+        <div id="roster"></div>
+        <canvas id="minimap" aria-label="minimap"></canvas>
+        <div id="clock">16:00</div>
+        <pre id="perf" hidden></pre>
+        <div id="toast" role="status" aria-live="polite"></div>
+        <div id="order-note" hidden><b id="order-title"></b><span id="order-text"></span></div>
+        <div id="notes" aria-live="polite"></div>
+        <div id="bubbles"></div>
+        <div id="chapter-card"><b></b><span></span></div>
+        <section id="dialog" hidden>
+          <div class="who"><i id="dialog-badge"></i><b id="dialog-name"></b><span id="dialog-role"></span></div>
+          <p id="dialog-text"></p>
+          <ol id="dialog-choices"></ol>
+          <em id="dialog-hint" hidden><kbd>E</kbd> 继续</em>
+        </section>
+        <section id="photo" hidden>
+          <div id="photo-frame"><div class="notch"></div></div>
+          <div id="photo-tags"><span id="photo-bag">外卖 ✗</span><span id="photo-plate">门牌 ✗</span></div>
+          <p class="photo-hint">鼠标取景 · <kbd>WASD</kbd> 挪一挪 · 滚轮变焦 · <kbd>空格</kbd> 拍照 · <kbd>Esc</kbd> 收起手机</p>
+          <div id="photo-flash"></div>
+        </section>
+      </section>
+
+      <section id="help" hidden>
+        <h1>广州 · 天河</h1>
+        <p class="sub">近未来珠江新城 · 《准时达》三主角试玩：阿杰、琪琪、强叔</p>
+        <dl class="keys">
+          <dt>WASD</dt><dd>移动（默认跑）</dd>
+          <dt>Shift</dt><dd>冲刺（阿杰跑得最久，强叔喘得最快）</dd>
+          <dt>C / Alt</dt><dd>切换慢走</dd>
+          <dt>空格</dt><dd>跳</dd>
+          <dt>鼠标</dt><dd>转镜头 · 滚轮拉远拉近</dd>
+          <dt>E</dt><dd>说话 · 取餐 · 交餐 · 按门禁 · 刷卡进地铁（对话里按 E 继续，1 2 3 选回答）</dd>
+          <dt>F</dt><dd>上车 / 下车（阿杰的电鸡就停在他身边；路边的车、车流里的车都能开）</dd>
+          <dt>骑电鸡</dt><dd>W 加速 · S 刹车（停住再按是倒退）· A/D 压弯 · 空格 后刹甩尾 · Q 喇叭</dd>
+          <dt>开车</dt><dd>W/S 油门刹车 · A/D 转向 · 空格手刹</dd>
+          <dt>M</dt><dd>车载音乐播放器（骑车、开车时自动播放）· N 下一首 · B 上一首 · P 暂停 · − / = 音量</dd>
+          <dt>1 2 3 / Tab</dt><dd>切换主角</dd>
+          <dt>J</dt><dd>显示 / 隐藏 NPC 决策标签（路人和车流由 Jev 模型决定行为）</dd>
+          <dt>R</dt><dd>下雨 / 雨停（也会随机来雨）</dd>
+          <dt>[ / ]</dt><dd>时间倒退 / 快进 1 小时（昼夜循环）</dd>
+          <dt>F3</dt><dd>性能面板</dd>
+          <dt>H</dt><dd>显示 / 隐藏本说明</dd>
+        </dl>
+        
+        <p class="goal">外卖单：小准自动派单。到<b class="y">黄色光柱</b>的店门口按 E 跟店员取餐（有的店出餐慢，有的店很「会做生意」），再送到<b class="g">绿色光柱</b>：公交站、地铁口要按备注找到顾客当面交；写字楼过保安那关，或者放外卖柜；住宅和城中村按门禁敲门，放门口拍照，照片要拍到外卖和门牌。时限按电鸡的速度算，从接单就开始计时；摔车、飞坡会洒餐；送完顾客会给评价。主线：第一章《五星好评》。街坊讲粤语、小准讲普通话，记得开声音。店名为虚构，地名是真实的。</p>
+        <p class="osm">地图数据 © OpenStreetMap 贡献者（ODbL）</p>
+        <button id="start" type="button">进入城市</button>
+      </section>
+
+      <section id="loading">
+        <h1>广州 · 天河</h1>
+        <div id="load-bar"><i id="load-fill"></i></div>
+        <span id="load-text">加载城区…</span>
+      </section>
+
+      </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+# 依赖、构建产物、截图、日志和预览渲染可再生；定稿图（renders/m2_*）保留
+demo/node_modules/
+demo/dist/
+demo/artifacts/
+logs/
+renders/preview_*/
+renders/cycles_test*/
+renders/kerb_check/
+# 试玩 zip 和解压出来的目录：成品放 GitHub Releases
+release/
+# 玩家自己的歌（商业唱片，不能分发）
+music_in/
+demo/public/assets/music/
+
+*.blend1
+*.blend2
+__pycache__/
+*.pyc
+.DS_Store

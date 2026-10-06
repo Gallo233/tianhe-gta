@@ -1,0 +1,68 @@
+{
+ "origin_latlon": [
+  23.1205,
+  113.3192
+ ],
+ "bounds_m": [
+  -1095.45,
+  -2432.63,
+  2692.56,
+  1105.74
+ ],
+ "core_m": [
+  -962.36,
+  -1879.76,
+  1105.69,
+  1050.45
+ ],
+ "license": "Map data (c) OpenStreetMap contributors, ODbL 1.0",
+ "coordinates": "JSON files: Blender Z-up metres (x east, y north, z up); GLBs: glTF Y-up (x, z, -y)",
+ "groups": {
+  "ground": 339779,
+  "buildings": 53632,
+  "landmarks": 71541,
+  "backdrop": 178373,
+  "water": 706,
+  "props": 1536,
+  "collision": 335745
+ },
+ "instances": {
+  "Street lamps | mast": 37,
+  "Street lamps | short": 2603,
+  "Street lamps | tall": 4248,
+  "Trees | banyan": 9537,
+  "Trees | kapok": 1269,
+  "Trees | palm": 865
+ },
+ "roads": {
+  "nodes": 1720,
+  "edges": 2265,
+  "junctions": 1150,
+  "dead_ends": 360
+ },
+ "walkways": {
+  "nodes": 8620,
+  "edges": 11001,
+  "crosswalks": 2584,
+  "corners": 2666,
+  "footways": 1800,
+  "links": 1354
+ },
+ "places": {
+  "pickup": 131,
+  "drop": 388
+ },
+ "metro": {
+  "exits": 45,
+  "pavilions": 43,
+  "tunnels": 65
+ },
+ "minimap": {
+  "x0": -1095.45,
+  "y0": -2432.63,
+  "size": 3788.01,
+  "px": 3000
+ },
+ "kerb": 0.15,
+ "footprints": 1051
+}
