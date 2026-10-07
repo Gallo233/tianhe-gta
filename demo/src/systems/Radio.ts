@@ -1,11 +1,17 @@
+import { analyse, deleteSong, isAudio, listSongs, putSong, type UserSong } from './MusicLibrary';
+
 /**
- * Music while riding the e-bike or driving: the player's own recordings, prepared by guangzhou/scripts/gz_music.py
- * into assets/music/ (tracks.json + one mp3 per song, a cover jpg when the file had artwork).
+ * Music while riding the e-bike or driving. Two sources, one playlist:
+ *   bundled   songs prepared by guangzhou/scripts/gz_music.py into assets/music/ (tracks.json + one mp3 per song, a
+ *             cover jpg when the file had artwork) -- the developer's defaults, not in the release zip by default
+ *   added     songs the player adds in the game (「添加音乐」 / dropping files), kept in this browser's IndexedDB
+ *             (MusicLibrary): levelled by a per-song gain, leading silence skipped, removable again
  *
  * One <audio> element streams the current song (no decoding whole songs into memory). Through a MediaElementSource it
  * also feeds an analyser, which the player UI (RadioUI) draws as a spectrum. What is heard:
  *
- *   gain = volume^2 (a perceptual curve) x fade x duck
+ *   gain = volume^2 (a perceptual curve) x fade x duck x the song's own gain (added songs; through a GainNode once
+ *          the audio graph is wired, so it may be above 1)
  *   fade   0 -> 1 in ~0.9 s on getting on a vehicle, back to 0 in ~0.7 s on getting off (then the song pauses where it
  *          was, and picks up there next ride); with `foot` on, the music carries on walking as well
  *   duck   0.3 while somebody is talking (recorded voices, a conversation on screen)
@@ -13,9 +19,14 @@
  *
  * The user's pause (P / the button / the media keys) sticks until they press play again, vehicle or not. Modes: the
  * playlist on a loop, one song on repeat, shuffle. Volume, mode, the song and how far into it are kept in localStorage.
- * With no tracks.json (nothing prepared yet) the radio is empty and the UI says how to add songs.
+ * With no songs at all the radio is empty and the UI offers 「添加音乐」.
  */
-export interface Track { id: string; title: string; artist: string; lang: string; file: string; dur: number; cover: string }
+export interface Track {
+  id: string; title: string; artist: string; lang: string; file: string; dur: number; cover: string;
+  /** added in the game: the stored file and cover as object URLs, the levelling gain, where the sound starts */
+  user?: boolean; src?: string; art?: string; gain?: number; skip?: number;
+}
+export interface AddResult { added: Track[]; failed: [string, string][] }
 export type RadioMode = 'list' | 'one' | 'shuffle';
 export type RadioEvent = 'track' | 'state' | 'volume' | 'mode' | 'list';
 
@@ -51,12 +62,14 @@ export class Radio {
   private saveT = 0;
   private listeners: ((e: RadioEvent) => void)[] = [];
   private resumeAt = 0;
+  private trackGain: GainNode | null = null;
+  private asked = false;
 
   /** where tracks.json's files live (QA swaps in generated clips) */
   constructor(public base = 'assets/music/') {
     this.el = new Audio();
     this.el.preload = 'auto';
-    this.el.addEventListener('ended', () => { if (this.mode === 'one') { this.el.currentTime = 0; void this.el.play().catch(() => {}); } else this.next(1); });
+    this.el.addEventListener('ended', () => { if (this.mode === 'one') { this.el.currentTime = this.track?.skip ?? 0; void this.el.play().catch(() => {}); } else this.next(1); });
     this.el.addEventListener('error', () => this.dropBroken());
     this.el.addEventListener('play', () => this.emit('state'));
     this.el.addEventListener('pause', () => this.emit('state'));
@@ -71,6 +84,8 @@ export class Radio {
   private emit(e: RadioEvent): void { for (const f of this.listeners) f(e); }
 
   get track(): Track | null { return this.tracks[this.cur] ?? null; }
+  url(t: Track): string { return t.src ?? this.base + t.file; }
+  coverUrl(t: Track): string { return t.art ?? (t.cover ? this.base + t.cover : ''); }
   get playing(): boolean { return !this.el.paused; }
 
   async load(): Promise<number> {
@@ -78,6 +93,7 @@ export class Radio {
       const r = await fetch(this.base + 'tracks.json', { cache: 'no-cache' });
       if (r.ok) this.tracks = ((await r.json()) as Track[]).filter((t) => t && t.file);
     } catch { this.tracks = []; }
+    this.tracks.push(...(await listSongs()).map((u) => this.fromStore(u)));
     const s = load();
     this.volume = Math.min(1, Math.max(0, s.vol ?? this.volume));
     this.mode = s.mode ?? this.mode;
@@ -106,12 +122,73 @@ export class Radio {
     if (this.wired || !this.ctx || this.ctx.state !== 'running') return;
     try {
       const src = this.ctx.createMediaElementSource(this.el);
+      const g = this.ctx.createGain();
+      g.gain.value = this.track?.gain ?? 1;
       const an = this.ctx.createAnalyser();
       an.fftSize = 256; an.smoothingTimeConstant = 0.78;
-      src.connect(an).connect(this.ctx.destination);
+      src.connect(g).connect(an).connect(this.ctx.destination);
       this.analyser = an;
+      this.trackGain = g;
     } catch { /* plays without the spectrum */ }
     this.wired = true;
+  }
+
+  // ------------------------------------------------------------------------------------------ added songs
+  private fromStore(u: UserSong): Track {
+    return { id: u.id, title: u.title, artist: u.artist, lang: '我的', file: u.name, dur: u.dur, cover: '', user: true,
+      src: URL.createObjectURL(u.blob), art: u.cover ? URL.createObjectURL(u.cover) : undefined, gain: u.gain, skip: u.skip };
+  }
+
+  /**
+   * Add the player's files, one at a time (each is decoded to measure it): the audio ones that decode join the end of
+   * the playlist and the browser's store. A song already in the list (same title, artist and length) is not added twice.
+   * The first song ever added becomes the current one when there was none. `progress` hears about each file as it starts.
+   */
+  async addFiles(files: File[], progress?: (i: number, n: number, name: string) => void): Promise<AddResult> {
+    const res: AddResult = { added: [], failed: [] };
+    const list = files.filter(isAudio);
+    for (const f of files) if (!isAudio(f)) res.failed.push([f.name, '不是音频文件']);
+    for (let i = 0; i < list.length; i++) {
+      const f = list[i];
+      progress?.(i, list.length, f.name);
+      try {
+        const u = await analyse(f);
+        const dup = this.tracks.find((t) => t.title === u.title && t.artist === u.artist && Math.abs(t.dur - u.dur) < 1.5);
+        if (dup) { res.failed.push([f.name, `已经在歌单里（${dup.title}）`]); continue; }
+        await putSong(u);
+        const t = this.fromStore(u);
+        this.tracks.push(t);
+        res.added.push(t);
+        this.emit('list');
+      } catch (e) {
+        res.failed.push([f.name, e instanceof Error ? e.message : String(e)]);
+      }
+    }
+    if (res.added.length) {
+      if (this.cur < 0) this.select(this.tracks.indexOf(res.added[0]), false);
+      // ask once that the browser keep them when the disk runs low
+      if (!this.asked) { this.asked = true; void navigator.storage?.persist?.().catch(() => false); }
+    }
+    return res;
+  }
+
+  /** take an added song out of the playlist and the store (the bundled ones stay) */
+  async remove(i: number): Promise<boolean> {
+    const t = this.tracks[i];
+    if (!t?.user) return false;
+    await deleteSong(t.id);
+    const wasCur = i === this.cur, play = wasCur && !this.el.paused;
+    this.tracks.splice(i, 1);
+    if (t.src) URL.revokeObjectURL(t.src);
+    if (t.art) URL.revokeObjectURL(t.art);
+    if (i < this.cur) this.cur -= 1;
+    this.emit('list');
+    if (wasCur) {
+      if (this.tracks.length) this.select(Math.min(i, this.tracks.length - 1), play);
+      else { this.cur = -1; this.el.removeAttribute('src'); this.el.load(); this.emit('track'); }
+    } else this.emit('track');
+    this.save();
+    return true;
   }
 
   // ------------------------------------------------------------------------------------------ controls
@@ -119,8 +196,9 @@ export class Radio {
     if (!this.tracks.length) return;
     this.cur = ((i % this.tracks.length) + this.tracks.length) % this.tracks.length;
     const t = this.tracks[this.cur];
-    this.resumeAt = 0;
-    this.el.src = this.base + t.file;
+    this.resumeAt = t.skip ?? 0;
+    this.el.src = this.url(t);
+    if (this.trackGain) this.trackGain.gain.value = t.gain ?? 1;
     if (play) this.userPaused = false;
     this.meta();
     this.emit('track');
@@ -140,7 +218,7 @@ export class Radio {
 
   /** as on any player: back to the start of this song, or the one before when it has only just begun */
   prev(): void {
-    if (this.el.currentTime > 3) { this.el.currentTime = 0; this.userPaused = false; this.emit('state'); return; }
+    if (this.el.currentTime > 3 + (this.track?.skip ?? 0)) { this.el.currentTime = this.track?.skip ?? 0; this.userPaused = false; this.emit('state'); return; }
     this.next(-1);
   }
 
@@ -192,7 +270,9 @@ export class Radio {
     this.level = want > this.level ? Math.min(1, this.level + dt / FADE_IN) : Math.max(0, this.level - dt / FADE_OUT);
     const dk = s.duck ? DUCK : 1;
     this.duckK += (dk - this.duckK) * Math.min(1, dt * 5);
-    const gain = (this.muted ? 0 : this.volume * this.volume) * this.level * this.duckK;
+    // the song's own gain: on the GainNode once wired, else (no audio graph) folded into the element's volume
+    const own = this.trackGain ? 1 : (t.gain ?? 1);
+    const gain = (this.muted ? 0 : this.volume * this.volume) * this.level * this.duckK * own;
     this.el.volume = Math.min(1, Math.max(0, gain));
     if (this.level > 0 && this.el.paused && this.el.src) {
       this.wire();
@@ -238,7 +318,8 @@ export class Radio {
   private meta(): void {
     const t = this.track, ms = navigator.mediaSession;
     if (!t || !ms || typeof MediaMetadata === 'undefined') return;
+    const art = this.coverUrl(t);
     ms.metadata = new MediaMetadata({ title: t.title, artist: t.artist || t.lang, album: '天河 · 车载音乐',
-      artwork: t.cover ? [{ src: this.base + t.cover, sizes: '320x320', type: 'image/jpeg' }] : [] });
+      artwork: art ? [{ src: art, sizes: '320x320', type: 'image/jpeg' }] : [] });
   }
 }

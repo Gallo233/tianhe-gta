@@ -8,7 +8,8 @@ import type { Radio, Track } from './Radio';
  *           volume) even on foot, and shows the volume while it is being turned
  *   panel   M: a vinyl peeking out of the cover (spins while playing), the live spectrum, a progress bar you can click
  *           or drag, mode / previous / play-pause / next / keep-playing-on-foot, the volume slider with mute, and the
- *           playlist. Opening it gives the mouse back (the game keeps running: you can drive on with the keys);
+ *           playlist, and 「添加音乐」 (a file picker; audio files dropped anywhere on the window open the panel and
+ *           are added too; songs added that way can be deleted from the list). Opening it gives the mouse back (the game keeps running: you can drive on with the keys);
  *           M, Esc, the x or a click back into the game closes it and takes the mouse again.
  *
  * Covers: the song's own artwork when the file had one, otherwise one drawn here in the song's colours.
@@ -27,6 +28,8 @@ const ICON = {
   walk: '<path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/>',
   close: '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>',
   note: '<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>',
+  add: '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
+  del: '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
 };
 const svg = (k: keyof typeof ICON) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 const MODE_TEXT = { list: '列表循环', one: '单曲循环', shuffle: '随机播放' } as const;
@@ -65,8 +68,11 @@ export class RadioUI {
   private phase = 0;
   private bars = new Float32Array(28);
   private shownMini = false;
+  private busy = false;
+  private drags = 0;
+  private msgTimer = 0;
 
-  constructor(private readonly radio: Radio, host: HTMLElement, private readonly hooks: { onOpen(): void; onClose(lock: boolean): void }) {
+  constructor(private readonly radio: Radio, host: HTMLElement, private readonly hooks: { onOpen(): void; onClose(lock: boolean): void; canOpen(): boolean }) {
     this.mini = document.createElement('div');
     this.mini.id = 'radio-mini';
     this.mini.innerHTML = `
@@ -82,7 +88,11 @@ export class RadioUI {
     this.panel.hidden = true;
     this.panel.setAttribute('aria-label', '车载音乐');
     this.panel.innerHTML = `
-      <header><span class="rp-badge">${svg('note')}车载音乐</span><span class="rp-where"></span><button class="rp-close" title="收起（M）">${svg('close')}</button></header>
+      <header><span class="rp-badge">${svg('note')}车载音乐</span><span class="rp-where"></span>
+        <button class="rp-addbtn" title="从电脑里选歌（可多选），也可以把文件直接拖进窗口">${svg('add')}添加音乐</button>
+        <button class="rp-close" title="收起（M）">${svg('close')}</button></header>
+      <div class="rp-addmsg" hidden></div>
+      <input class="rp-file" type="file" accept="audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg,.opus" multiple hidden />
       <div class="rp-now">
         <div class="rp-art"><div class="rp-disc"><i></i></div><div class="rp-cover cover"><img alt="" hidden /><span class="glyph"></span></div></div>
         <div class="rp-info">
@@ -105,9 +115,9 @@ export class RadioUI {
       <ol class="rp-list"></ol>
       <div class="rp-empty" hidden>
         <b>还没有歌</b>
-        <p>把你自己的歌曲文件（任意文件名，mp3 / m4a / flac / wav 都行）放进<br><code>guangzhou/music_in/</code><br>然后运行</p>
-        <code class="rp-cmd">python3 guangzhou/scripts/gz_music.py</code>
-        <p>首轮歌单：《黑街》《日落大道》《Midnight City》《Blinding Lights》。会自动统一响度、读取封面和歌手。</p>
+        <p>点「添加音乐」，选你自己电脑里的歌（mp3 / m4a / flac / wav 都行，可以一次选多首），或者把文件直接拖进游戏窗口。</p>
+        <p>歌只保存在这个浏览器里，下次打开还在；会自动统一音量、读出歌名歌手和封面。</p>
+        <button class="rp-addbig">${svg('add')}添加音乐</button>
       </div>
       <footer><kbd>N</kbd>下一首<kbd>B</kbd>上一首<kbd>P</kbd>暂停<kbd>−</kbd><kbd>=</kbd>音量<kbd>M</kbd>收起</footer>`;
     host.append(this.mini, this.panel);
@@ -125,7 +135,33 @@ export class RadioUI {
     q('.rp-mute').addEventListener('click', () => this.radio.toggleMute());
     const range = q<HTMLInputElement>('.rp-vol input');
     range.addEventListener('input', () => this.radio.setVolume(Number(range.value) / 100));
+    const file = q<HTMLInputElement>('.rp-file');
+    for (const b of ['.rp-addbtn', '.rp-addbig']) q(b).addEventListener('click', () => { if (!this.busy) file.click(); });
+    file.addEventListener('change', () => { const fs = [...(file.files ?? [])]; file.value = ''; if (fs.length) void this.add(fs); });
+    // audio files dragged over the window: the panel opens as the drop target; dropped anywhere, they are added
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+    window.addEventListener('dragenter', (e) => {
+      if (!hasFiles(e)) return;
+      this.drags += 1;
+      if (!this.open && this.hooks.canOpen()) this.show();
+      this.panel.classList.add('drop');
+    });
+    window.addEventListener('dragleave', (e) => { if (hasFiles(e) && --this.drags <= 0) { this.drags = 0; this.panel.classList.remove('drop'); } });
+    window.addEventListener('dragover', (e) => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer!.dropEffect = 'copy'; } });
+    window.addEventListener('drop', (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      this.drags = 0; this.panel.classList.remove('drop');
+      void this.add([...e.dataTransfer!.files]);
+    });
     q('.rp-list').addEventListener('click', (e) => {
+      // an added song's bin: the first click arms it (red), a second within 2.5 s deletes
+      const del = (e.target as HTMLElement).closest<HTMLElement>('.rl-del');
+      if (del) {
+        if (del.classList.contains('sure')) void this.radio.remove(Number(del.dataset.del));
+        else { del.classList.add('sure'); del.title = '再点一次删除'; setTimeout(() => { del.classList.remove('sure'); del.title = '从歌单删除'; }, 2500); }
+        return;
+      }
       const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-i]');
       if (!li) return;
       const i = Number(li.dataset.i);
@@ -148,6 +184,28 @@ export class RadioUI {
   }
 
   toggle(): void { if (this.open) this.close(true); else this.show(); }
+
+  /** add the player's files, with progress and the outcome under the button */
+  async add(files: File[]): Promise<void> {
+    if (this.busy || !files.length) return;
+    this.busy = true;
+    const btns = [...this.panel.querySelectorAll<HTMLButtonElement>('.rp-addbtn, .rp-addbig')], msg = this.panel.querySelector<HTMLElement>('.rp-addmsg')!;
+    for (const b of btns) b.disabled = true;
+    clearTimeout(this.msgTimer);
+    msg.className = 'rp-addmsg'; msg.hidden = false;
+    try {
+      const r = await this.radio.addFiles(files, (i, n, name) => { msg.textContent = `正在添加 ${n > 1 ? `${i + 1}/${n} ` : ''}${name} · 统一音量…`; });
+      const bad = r.failed.slice(0, 2).map(([n, why]) => `${n}：${why}`).join('；') + (r.failed.length > 2 ? ` 等 ${r.failed.length} 个` : '');
+      msg.textContent = r.added.length ? `已添加 ${r.added.length} 首${bad ? `；没加进来的：${bad}` : ''}` : (bad || '没有可添加的歌');
+      msg.classList.add(r.added.length ? 'ok' : 'bad');
+      if (r.added.length) this.flashT = 3.5;
+      // the outcome stays a while (longer when something was left out), then the line folds away
+      this.msgTimer = window.setTimeout(() => { msg.hidden = true; }, r.failed.length ? 15000 : 6000);
+    } finally {
+      this.busy = false;
+      for (const b of btns) b.disabled = false;
+    }
+  }
 
   show(): void {
     this.open = true;
@@ -172,7 +230,8 @@ export class RadioUI {
     const [a, b, c] = paletteOf(t);
     el.style.setProperty('--c0', a); el.style.setProperty('--c1', b); el.style.setProperty('--c2', c);
     g.textContent = glyph(t);
-    if (t.cover) { img.src = this.radio.base + t.cover; img.hidden = false; } else img.hidden = true;
+    const url = this.radio.coverUrl(t);
+    if (url) { img.src = url; img.hidden = false; } else img.hidden = true;
   }
 
   private renderTrack(): void {
@@ -201,6 +260,7 @@ export class RadioUI {
         <span class="rl-t"><b>${esc(t.title)}</b><small>${esc(t.artist || '未知歌手')}</small></span>
         <i class="chip">${esc(t.lang)}</i>
         <span class="rl-d">${mmss(t.dur)}</span>
+        ${t.user ? `<button class="rl-del" data-del="${i}" title="从歌单删除">${svg('del')}</button>` : '<span></span>'}
       </li>`).join('');
   }
 

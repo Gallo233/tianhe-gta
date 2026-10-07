@@ -274,6 +274,7 @@ export class Game {
     this.radioUI = new RadioUI(this.radio, el('#hud'), {
       onOpen: () => { if (this.input.pointerLocked) document.exitPointerLock(); },
       onClose: (lock) => { if (lock && this.playing) this.input.requestLock(); },
+      canOpen: () => this.playing,
     });
     // M / Esc open and close the player inside the key event itself: the pointer lock is only granted in a gesture
     window.addEventListener('keydown', (e) => {

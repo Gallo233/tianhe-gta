@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { fromBlender } from '../config';
 import { Loop } from '../core/Loop';
 import { obbContact } from '../systems/CarCollisions';
+import { listSongs, parseId3 } from '../systems/MusicLibrary';
+import { Radio } from '../systems/Radio';
 import { SHOP_U } from '../world/ShopLight';
 
 /**
@@ -2139,6 +2141,72 @@ const TESTS: Test[] = [
         for (const u of urls) URL.revokeObjectURL(u);
         try { if (saved === null) localStorage.removeItem('gz.radio'); else localStorage.setItem('gz.radio', saved); } catch { /* private window */ }
         parkBikeHome(g);
+      }
+      return { pass: ok.every(Boolean), detail: out.join(', ') };
+    },
+  },
+  {
+    id: 'RAD-02', title: '添加音乐：玩家的文件进歌单并存进浏览器（重开还在）；统一到 −16 LUFS、跳过开头静音；文件名 / ID3（UTF-16、GBK、UTF-8）读歌名歌手；重复的不加、不是音频的拒绝；只能删自己加的',
+    run: async (g) => {
+      const R = (g as unknown as { radio: Radio }).radio;
+      const keep = { cur: R.cur, paused: R.userPaused, n: R.tracks.length };
+      let saved: string | null = null;
+      try { saved = localStorage.getItem('gz.radio'); } catch { /* private window */ }
+      const out: string[] = [], ok: boolean[] = [];
+      const check = (name: string, c: boolean, info = '') => { ok.push(c); out.push(`${name} ${c ? 'ok' : 'FAIL'}${info ? ' (' + info + ')' : ''}`); };
+      // 8 s mono 22.05 kHz: 1 s of silence, then 997 Hz at amplitude 0.1 -- BS.1770 puts that at -23.0 LUFS, so the
+      // gain to -16 is about 2.24 and playback starts about 0.95 s in
+      const sr = 22050, n = sr * 8, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+      const w = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+      w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+      for (let i = sr; i < n; i++) v.setInt16(44 + i * 2, Math.round(0.1 * 32767 * Math.sin(2 * Math.PI * 997 * (i - sr) / sr)), true);
+      const song = new File([buf], 'QA 歌手 - QA 测试歌.wav', { type: 'audio/wav' });
+      let added: Radio['tracks'][number] | undefined;
+      try {
+        const r1 = await R.addFiles([song]);
+        added = r1.added[0];
+        check('added', r1.added.length === 1 && !!added?.user && R.tracks.includes(added), r1.failed.map((f) => f.join(':')).join(' '));
+        if (!added) return { pass: false, detail: out.join(', ') };
+        check('title / artist from the file name', added.title === 'QA 测试歌' && added.artist === 'QA 歌手', `${added.artist} - ${added.title}`);
+        check('length', Math.abs(added.dur - 8) < 0.05, `${added.dur} s`);
+        check('levelled to -16 LUFS', (added.gain ?? 0) > 2.0 && (added.gain ?? 0) < 2.5, `gain ${added.gain}`);
+        check('leading silence skipped', (added.skip ?? 0) > 0.9 && (added.skip ?? 0) < 1.0, `starts at ${added.skip} s`);
+        check('stored', (await listSongs()).some((u) => u.id === added!.id));
+        // a fresh radio, as after closing the browser: the song is back
+        const again = new Radio(R.base);
+        await again.load();
+        const back = again.tracks.find((t) => t.id === added!.id);
+        check('back after a reload', !!back && back.user === true && back.gain === added.gain);
+        for (const t of again.tracks) { if (t.src) URL.revokeObjectURL(t.src); if (t.art) URL.revokeObjectURL(t.art); }
+        again.el.removeAttribute('src');
+        (R as unknown as { mediaKeys(): void }).mediaKeys();      // the media keys belong to the game's radio again
+        const r2 = await R.addFiles([song]);
+        check('not added twice', r2.added.length === 0 && /已经在歌单里/.test(r2.failed[0]?.[1] ?? ''), r2.failed[0]?.[1]);
+        const r3 = await R.addFiles([new File(['hello'], 'notes.txt', { type: 'text/plain' }), new File([new Uint8Array(4096).fill(7)], 'broken.mp3', { type: 'audio/mpeg' })]);
+        check('not audio / undecodable: refused', r3.added.length === 0 && /不是音频/.test(r3.failed[0]?.[1] ?? '') && /无法解码/.test(r3.failed[1]?.[1] ?? ''), r3.failed.map((f) => f[1]).join(' | '));
+        // ID3: v2.3 with a UTF-16 title, a GBK artist (encoding byte 0, as Chinese rips do) and a cover; v2.4 in UTF-8
+        const be = (k: number) => [(k >>> 24) & 255, (k >>> 16) & 255, (k >>> 8) & 255, k & 255];
+        const fr = (id: string, body: number[]) => [...id].map((c) => c.charCodeAt(0)).concat(be(body.length), [0, 0], body);
+        const tag = (ver: number, frames: number[][]) => { const b = frames.flat(); return Uint8Array.from([0x49, 0x44, 0x33, ver, 0, 0, 0, 0, (b.length >> 7) & 127, b.length & 127, ...b]); };
+        const u16 = (t: string) => [0xff, 0xfe, ...[...t].flatMap((c) => [c.charCodeAt(0) & 255, c.charCodeAt(0) >> 8])];
+        const ascii = (t: string) => [...t].map((c) => c.charCodeAt(0));
+        const t3 = parseId3(tag(3, [fr('TIT2', [1, ...u16('日落大道')]), fr('TPE1', [0, 0xc1, 0xba, 0xb2, 0xa9]), fr('APIC', [0, ...ascii('image/png'), 0, 3, 0, 1, 2, 3, 4])]));
+        check('ID3v2.3 UTF-16 / GBK / cover', t3?.title === '日落大道' && t3.artist === '梁博' && t3.cover?.size === 4 && t3.cover.type === 'image/png', `${t3?.artist} - ${t3?.title}`);
+        const utf8 = (t: string) => [...new TextEncoder().encode(t)];
+        const t4 = parseId3(tag(4, [fr('TIT2', [3, ...utf8('黑街')]), fr('TPE1', [3, ...utf8('M83')])]));
+        check('ID3v2.4 UTF-8', t4?.title === '黑街' && t4.artist === 'M83', `${t4?.artist} - ${t4?.title}`);
+        const bundled = R.tracks.findIndex((t) => !t.user);
+        if (bundled >= 0) check('bundled songs cannot be deleted', !(await R.remove(bundled)));
+        check('deleted', await R.remove(R.tracks.indexOf(added)) && !R.tracks.includes(added) && !(await listSongs()).some((u) => u.id === added!.id));
+        added = undefined;
+      } finally {
+        if (added) await R.remove(R.tracks.indexOf(added));
+        R.el.pause();
+        if (R.tracks.length && keep.cur >= 0) R.select(Math.min(keep.cur, R.tracks.length - 1), false);
+        else if (!keep.n) { R.cur = -1; R.el.removeAttribute('src'); R.el.load(); }
+        R.userPaused = keep.paused;
+        try { if (saved === null) localStorage.removeItem('gz.radio'); else localStorage.setItem('gz.radio', saved); } catch { /* private window */ }
       }
       return { pass: ok.every(Boolean), detail: out.join(', ') };
     },

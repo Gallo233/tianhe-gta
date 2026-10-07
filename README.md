@@ -28,7 +28,7 @@
 - **送外卖**：取餐、三种送达方式（当面交、保安和外卖柜、放门口拍照）、商家和顾客事件、评价与申诉；
   第一章《五星好评》6 个剧情单。
 - **APM 线**：5 个真实地下站、隧道、列车，能进站刷卡坐车；43 个地铁出入口按 OSM 位置摆放。
-- 开车、警察追逐、路人和车流；街坊讲粤语、平台讲普通话的全角色配音；车载电台（歌曲需自备，见下）。
+- 开车、警察追逐、路人和车流；街坊讲粤语、平台讲普通话的全角色配音；车载电台（M 打开，「添加音乐」加自己的歌）。
 
 ## 操作
 
@@ -55,7 +55,7 @@ npm run dev        # http://127.0.0.1:5288
 - 打包试玩 zip：`bash demo/release_kit/make_release.sh` → `release/天河demo试玩_YYYYMMDD.zip`（release 目录不进版本库，成品放 GitHub Releases）。
 - 回归测试：开发版页面控制台运行 `__GZ__.qa.run()`；建议 1280×720 窗口、按前缀分组跑（例如 `__GZ__.qa.run('VEH')`）。
 - 路人 / 警察的决策默认用内置规则；设置环境变量 `TYPESAFE_API_KEY`（或 `~/.typesafe/key`）后，开发服务器会把 `/api/npc-brain` 转给 Jev 模型。密钥只在服务端读取。
-- 电台歌曲是商业唱片，不在仓库里：把自己的音频放进 `music_in/`，运行 `python3 scripts/gz_music.py` 生成到 `demo/public/assets/music/`。
+- 电台歌曲是商业唱片，不在仓库里。玩家在游戏里按 M →「添加音乐」（或把文件拖进窗口）加自己的歌：存在浏览器的 IndexedDB 里，自动统一响度（BS.1770，−16 LUFS），读 ID3 的歌名、歌手、封面，可删除。开发机想要一份默认歌单：把音频放进 `music_in/`，运行 `python3 scripts/gz_music.py` 生成到 `demo/public/assets/music/`（试玩包默认不带，`INCLUDE_MUSIC=1` 才带）。
 
 ### 资产管线（Blender 5.1）
 

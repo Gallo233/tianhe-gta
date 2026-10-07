@@ -7,6 +7,7 @@
 - **公开仓库** https://github.com/Gallo233/tianhe-gta （MIT；OSM 派生数据 ODbL、Draco Apache-2.0，见 `NOTICE`）。大仓库提交后 `git subtree split --prefix=guangzhou -b tianhe-gta` 再推 `tianhe-gta:main`；`git push` / `gh release` 会被 Jev 钩子拦，放用户终端跑。试玩 zip 放 Releases（`release/` 不进库，上传前改成 ASCII 文件名）。桌面有启动器 `~/Desktop/天河 demo.command`（跑 5288 的开发服务器）。
 - **修了一个偶发的「画面全空」**：rAF 的帧时间戳是这一帧的起点，可能比 `Loop.start()` 里取的 `performance.now()` 还早（实测 20 次有 3 次，最多早 11 ms），第一帧 dt 为负；`MallSigns` 用 `floor(t/8) % 4` 取到 `SCREEN[-1]` 抛错，而旧 `Loop.tick` 抛错就不再排下一帧——HUD 在、画布空、不派单、小地图空。现在 dt 钳到 [0, 0.05]，`tick` 先排下一帧再执行、出错只报告（回归 **LOOP-01**）。
 - **报错回传** `core/ErrorReport.ts`：未捕获错误、Promise 拒绝、WebGL 上下文丢失 → 屏幕红框；开发服务器上还 POST `/__err` → `guangzhou/logs/client_errors.log`（带 UA、GPU、视口）并在终端打一行。用户说「画面不对」时先看这个日志。
+- **2026-10-07 车载音乐**：用户给了四首 mp3（微信文件夹受 macOS 保护，沙箱里读不了，在用户终端里 `cp` 进 `music_in/`，按脚本认的英文名），`gz_music.py` 处理成本机默认歌单（仍不进库、不进试玩包）。新增**「添加音乐」**（`systems/MusicLibrary.ts`）：面板顶栏按钮 / 空歌单大按钮 / 把文件拖进窗口任意处（面板自动打开）→ 浏览器解码一次：BS.1770 积分响度（22.05 kHz，K 加权用 Web Audio biquad——**highpass 的 Q 单位是 dB**，线性 0.5 要写 −6.02，写成 0.5 会把低频多算 ~1.5 dB）求到 −16 LUFS 的增益（峰值压在 −1.5 dBFS 下）、开头静音跳过、ID3v2.2–2.4 读歌名歌手封面（编码 0 的 GBK 也认）、读不到用文件名「歌手 - 歌名」；原文件存 IndexedDB `gz-music`，重开还在；同名同长度不重复加；自己加的歌两下点删除，默认歌删不掉。播放时增益走 MediaElementSource 后的 GainNode（可 > 1）。实测和 ffmpeg ebur128 差 0.1–0.2 dB。回归 **RAD-02**。
 
 ## ▶ 下一会话从这里开始（2026-10-06，第十二个会话：城市精修——花城广场 / 花城汇 / 北段）
 
